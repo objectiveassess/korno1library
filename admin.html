@@ -7,33 +7,37 @@
 </head>
 <body>
   <div class="app">
-    <h1>관리자 페이지</h1>
-    <p class="subtitle">오늘 출근/퇴근 QR 토큰과 QR 코드를 생성합니다.</p>
-
-    <div class="section">
-      <h2>출근 QR</h2>
-      <button class="primary" onclick="makeCheckInToken()">출근 QR 토큰 만들기</button>
-      <p id="checkInResult" class="status"></p>
-      <div class="qr-box">
-        <div>출근 QR 코드</div>
-        <div id="checkInQR" class="qr-target"></div>
-      </div>
+    <div class="page-header">
+      <div class="page-title">관리자 - QR 생성</div>
+      <div class="page-subtitle">오늘 출근/퇴근 QR 토큰과 QR 코드를 생성합니다.</div>
     </div>
 
-    <div class="section">
-      <h2>퇴근 QR</h2>
-      <button class="primary" onclick="makeCheckOutToken()">퇴근 QR 토큰 만들기</button>
+    <div class="card center">
+      <div class="table-title">출근 QR</div>
+      <button class="primary" style="margin-top:10px;" onclick="makeCheckInToken()">출근 QR 토큰 만들기</button>
+      <p id="checkInResult" class="status"></p>
+      <div id="checkInQR" class="qr-area"></div>
+    </div>
+
+    <div class="card center">
+      <div class="table-title">퇴근 QR</div>
+      <button class="primary" style="margin-top:10px;" onclick="makeCheckOutToken()">퇴근 QR 토큰 만들기</button>
       <p id="checkOutResult" class="status"></p>
-      <div class="qr-box">
-        <div>퇴근 QR 코드</div>
-        <div id="checkOutQR" class="qr-target"></div>
-      </div>
+      <div id="checkOutQR" class="qr-area"></div>
+    </div>
+
+    <div class="card">
+      <div class="table-title">상태</div>
+      <p id="status" class="status">대기 중...</p>
+      <p class="status small" style="margin-top:4px;">
+        출석부 확인: <a href="admin_report.html" class="link">오늘 전체 출석부 보기</a>
+      </p>
     </div>
   </div>
 
   <!-- Firebase -->
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
   <!-- QR 코드 라이브러리 -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
@@ -49,64 +53,83 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
+    const statusEl = document.getElementById("status");
+    const checkInResult = document.getElementById("checkInResult");
+    const checkOutResult = document.getElementById("checkOutResult");
+
     function getToday() {
       const d = new Date();
       return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
     }
     const today = getToday();
 
-    function randomToken() {
-      return Math.random().toString(36).substring(2, 10);
+    function randomToken(prefix) {
+      return prefix + Math.random().toString(36).substring(2, 10);
     }
 
     let checkInQR, checkOutQR;
 
-    function ensureQRObjects() {
-      if (!checkInQR) {
-        checkInQR = new QRCode(document.getElementById("checkInQR"), {
-          text: "",
-          width: 160,
-          height: 160
-        });
-      }
-      if (!checkOutQR) {
-        checkOutQR = new QRCode(document.getElementById("checkOutQR"), {
-          text: "",
-          width: 160,
-          height: 160
-        });
-      }
-    }
-
     async function makeCheckInToken() {
-      ensureQRObjects();
-      const token = "CI_" + randomToken();
-      await db.collection("tokens").doc(today).set(
-        { checkInToken: token },
-        { merge: true }
-      );
+      try {
+        statusEl.textContent = "출근 토큰 생성 중...";
+        const token = randomToken("CI_");
+        await db.collection("tokens").doc(today).set(
+          { checkInToken: token },
+          { merge: true }
+        );
 
-      const url = `${window.location.origin}/checkin.html?token=${token}`;
-      document.getElementById("checkInResult").innerHTML =
-        `출근 토큰: <b>${token}</b><br/>링크: <span style="font-size:11px;">${url}</span>`;
+        const url = `${window.location.origin}/checkin.html?token=${token}`;
+        checkInResult.innerHTML = `출근 토큰: <b>${token}</b><br><span class="small">${url}</span>`;
 
-      checkInQR.makeCode(url);
+        if (!checkInQR) {
+          checkInQR = new QRCode("checkInQR", {
+            text: url,
+            width: 160,
+            height: 160
+          });
+        } else {
+          checkInQR.clear();
+          checkInQR.makeCode(url);
+        }
+
+        statusEl.textContent = "출근 토큰 생성 완료!";
+      } catch (e) {
+        console.error(e);
+        statusEl.textContent = "출근 토큰 생성 중 에러: " + e.message;
+      }
     }
 
     async function makeCheckOutToken() {
-      ensureQRObjects();
-      const token = "CO_" + randomToken();
-      await db.collection("tokens").doc(today).set(
-        { checkOutToken: token },
-        { merge: true }
-      );
+      try {
+        statusEl.textContent = "퇴근 토큰 생성 중...";
+        const token = randomToken("CO_");
+        await db.collection("tokens").doc(today).set(
+          { checkOutToken: token },
+          { merge: true }
+        );
 
-      const url = `${window.location.origin}/checkout.html?token=${token}`;
-      document.getElementById("checkOutResult").innerHTML =
-        `퇴근 토큰: <b>${token}</b><br/>링크: <span style="font-size:11px;">${url}</span>`;
+        const url = `${window.location.origin}/checkout.html?token=${token}`;
+        checkOutResult.innerHTML = `퇴근 토큰: <b>${token}</b><br><span class="small">${url}</span>`;
 
-      checkOutQR.makeCode(url);
+        if (!checkOutQR) {
+          checkOutQR = new QRCode("checkOutQR", {
+            text: url,
+            width: 160,
+            height: 160
+          });
+        } else {
+          checkOutQR.clear();
+          checkOutQR.makeCode(url);
+        }
+
+        statusEl.textContent = "퇴근 토큰 생성 완료!";
+      } catch (e) {
+        console.error(e);
+        statusEl.textContent = "퇴근 토큰 생성 중 에러: " + e.message;
+      }
     }
+
+    statusEl.textContent = `오늘 날짜: ${today} · 대기 중`;
   </script>
 </body>
 </html>
