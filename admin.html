@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>관리자 - QR 토큰 생성</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app">
+    <h1>관리자 페이지</h1>
+    <p class="subtitle">오늘 출근/퇴근 QR 토큰과 QR 코드를 생성합니다.</p>
+
+    <div class="section">
+      <h2>출근 QR</h2>
+      <button class="primary" onclick="makeCheckInToken()">출근 QR 토큰 만들기</button>
+      <p id="checkInResult" class="status"></p>
+      <div class="qr-box">
+        <div>출근 QR 코드</div>
+        <div id="checkInQR" class="qr-target"></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>퇴근 QR</h2>
+      <button class="primary" onclick="makeCheckOutToken()">퇴근 QR 토큰 만들기</button>
+      <p id="checkOutResult" class="status"></p>
+      <div class="qr-box">
+        <div>퇴근 QR 코드</div>
+        <div id="checkOutQR" class="qr-target"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <!-- QR 코드 라이브러리 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyCvlmk_jldq85UnFNvaLGQGtGcQVOzti8s",
+      authDomain: "korno1library.firebaseapp.com",
+      projectId: "korno1library",
+      storageBucket: "korno1library.appspot.com",
+      messagingSenderId: "407619436872",
+      appId: "1:407619436872:web:7fdd65b77eed5f84aa737d"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    function getToday() {
+      const d = new Date();
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+    }
+    const today = getToday();
+
+    function randomToken() {
+      return Math.random().toString(36).substring(2, 10);
+    }
+
+    let checkInQR, checkOutQR;
+
+    function ensureQRObjects() {
+      if (!checkInQR) {
+        checkInQR = new QRCode(document.getElementById("checkInQR"), {
+          text: "",
+          width: 160,
+          height: 160
+        });
+      }
+      if (!checkOutQR) {
+        checkOutQR = new QRCode(document.getElementById("checkOutQR"), {
+          text: "",
+          width: 160,
+          height: 160
+        });
+      }
+    }
+
+    async function makeCheckInToken() {
+      ensureQRObjects();
+      const token = "CI_" + randomToken();
+      await db.collection("tokens").doc(today).set(
+        { checkInToken: token },
+        { merge: true }
+      );
+
+      const url = `${window.location.origin}/checkin.html?token=${token}`;
+      document.getElementById("checkInResult").innerHTML =
+        `출근 토큰: <b>${token}</b><br/>링크: <span style="font-size:11px;">${url}</span>`;
+
+      checkInQR.makeCode(url);
+    }
+
+    async function makeCheckOutToken() {
+      ensureQRObjects();
+      const token = "CO_" + randomToken();
+      await db.collection("tokens").doc(today).set(
+        { checkOutToken: token },
+        { merge: true }
+      );
+
+      const url = `${window.location.origin}/checkout.html?token=${token}`;
+      document.getElementById("checkOutResult").innerHTML =
+        `퇴근 토큰: <b>${token}</b><br/>링크: <span style="font-size:11px;">${url}</span>`;
+
+      checkOutQR.makeCode(url);
+    }
+  </script>
+</body>
+</html>
