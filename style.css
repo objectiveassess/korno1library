@@ -1,98 +1,84 @@
-/* 전체 공통 */
+/* ===== 기본 세팅 ===== */
 * {
-  box-sizing: border-box;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
   margin: 0;
   padding: 0;
+  box-sizing: border-box;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
 }
 
 body {
-  background-color: #f5f7fb;
-  color: #111827;
+  background: #f3f4f8;
   display: flex;
   justify-content: center;
-  padding: 24px;
+  padding: 20px 14px;
 }
 
 .app {
   width: 100%;
-  max-width: 480px;
-  background: #ffffff;
-  border-radius: 16px;
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
-  padding: 20px 20px 24px;
+  max-width: 420px;
 }
 
-h1 {
+/* ===== 타이틀 영역 ===== */
+.page-header {
+  margin-bottom: 18px;
+}
+
+.page-title {
   font-size: 22px;
   font-weight: 700;
+  color: #111827;
   margin-bottom: 6px;
-  color: #0f172a;
 }
 
-h2 {
-  font-size: 18px;
-  font-weight: 600;
-  margin: 16px 0 8px;
-}
-
-.subtitle {
-  font-size: 13px;
+.page-subtitle {
   color: #6b7280;
-  margin-bottom: 16px;
-}
-
-.section {
-  margin-top: 16px;
-  padding: 12px 14px;
-  border-radius: 12px;
-  background: #f9fafb;
-}
-
-label {
-  display: block;
   font-size: 13px;
-  font-weight: 500;
-  margin-bottom: 4px;
+}
+
+/* ===== 카드 ===== */
+.card {
+  background: #ffffff;
+  padding: 18px 18px 20px;
+  border-radius: 20px;
+  box-shadow: 0 4px 18px rgba(15,23,42,0.06);
+  margin-bottom: 14px;
+}
+
+/* ===== 라벨, 인풋 ===== */
+label {
+  font-size: 13px;
+  font-weight: 600;
   color: #374151;
+  display: block;
+  margin-bottom: 6px;
 }
 
 input, select {
   width: 100%;
-  padding: 9px 10px;
-  border-radius: 10px;
-  border: 1px solid #d1d5db;
-  font-size: 14px;
-  outline: none;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
-  background: #ffffff;
-}
-
-input:focus, select:focus {
-  border-color: #2563eb;
-  box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.2);
-}
-
-.btn-row {
-  display: flex;
-  gap: 8px;
-  margin-top: 10px;
-}
-
-button {
-  flex: 1;
+  background: #f1f5f9;
   border: none;
-  border-radius: 999px;
-  padding: 10px 0;
+  border-radius: 14px;
+  padding: 11px 13px;
   font-size: 14px;
-  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+/* ===== 버튼 ===== */
+button {
+  width: 100%;
+  padding: 13px 0;
+  font-size: 15px;
+  font-weight: 700;
+  border: none;
+  border-radius: 14px;
   cursor: pointer;
-  transition: background 0.15s ease, transform 0.05s ease;
+  transition: transform 0.05s ease, box-shadow 0.1s ease, background 0.1s;
 }
 
 button.primary {
   background: #2563eb;
-  color: #ffffff;
+  color: white;
+  box-shadow: 0 3px 10px rgba(37,99,235,0.25);
 }
 
 button.secondary {
@@ -102,11 +88,20 @@ button.secondary {
 
 button:active {
   transform: scale(0.98);
+  box-shadow: none;
 }
 
+/* 버튼 두 개 나란히 */
+.btn-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+/* ===== 메시지 / 상태 ===== */
 .message {
-  margin-top: 8px;
   font-size: 13px;
+  margin-top: 6px;
   color: #4b5563;
 }
 
@@ -118,76 +113,112 @@ button:active {
   color: #16a34a;
 }
 
-.info-chip {
-  display: inline-flex;
-  align-items: center;
+.status {
+  font-size: 13px;
+  margin-top: 6px;
+  color: #4b5563;
+}
+
+/* ===== 칩 / 태그 ===== */
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
   gap: 6px;
-  padding: 6px 10px;
-  border-radius: 999px;
-  background: #eff6ff;
-  color: #1d4ed8;
-  font-size: 12px;
   margin-top: 4px;
 }
 
-.link {
-  font-size: 12px;
-  color: #2563eb;
-  text-decoration: none;
+.chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #eef2ff;
+  color: #3730a3;
+  font-size: 11px;
+  font-weight: 500;
 }
 
-.link:hover {
+/* 작은 링크 */
+a.link {
+  color: #2563eb;
+  text-decoration: none;
+  font-size: 12px;
+}
+a.link:hover {
   text-decoration: underline;
 }
 
-/* 테이블 */
+/* ===== 차트 ===== */
+.chart-container {
+  margin-top: 10px;
+  background: #f1f5f9;
+  border-radius: 16px;
+  padding: 10px;
+}
+
+/* ===== QR 영역 ===== */
+.qr-area {
+  margin-top: 10px;
+}
+
+#qrReader {
+  margin-top: 10px;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+/* ===== 테이블 ===== */
+.table-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.table-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.small {
+  font-size: 11px;
+  color: #9ca3af;
+}
+
 table {
   width: 100%;
   border-collapse: collapse;
-  margin-top: 6px;
+  margin-top: 4px;
 }
 
 th, td {
-  border-bottom: 1px solid #e5e7eb;
-  padding: 4px 2px;
   font-size: 12px;
-  text-align: left;
+  padding: 4px 0;
+  border-bottom: 1px solid #e5e7eb;
 }
 
 th {
-  font-weight: 600;
+  text-align: left;
   color: #6b7280;
+  font-weight: 600;
 }
 
 tr:last-child td {
   border-bottom: none;
 }
 
-/* 상태 텍스트 */
-.status {
-  font-size: 14px;
-  margin-top: 8px;
-}
-
-/* 그래프 박스 */
-.chart-box {
-  margin-top: 8px;
-  padding: 10px;
-  border-radius: 12px;
-  background: #eff6ff;
-}
-
-/* QR 영역 */
-.qr-box {
-  margin-top: 8px;
-  padding: 10px;
-  border-radius: 12px;
-  background: #f9fafb;
-  text-align: center;
-  font-size: 12px;
-}
-
-.qr-target {
-  margin-top: 6px;
+/* 간단 배지 */
+.badge-blue {
   display: inline-block;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-size: 11px;
+}
+
+/* 중앙 정렬 카드용 */
+.center {
+  text-align: center;
 }
