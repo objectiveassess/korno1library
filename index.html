@@ -1,50 +1,14 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <title>도서관 공부 랭킹 - 로그인</title>
-  <link rel="stylesheet" href="style.css" />
-</head>
-<body>
-  <div class="app">
-    <h1>도서관 공부 랭킹</h1>
-    <p class="subtitle">닉네임과 4자리 비밀번호, 준비하는 시험을 입력해 주세요.</p>
-
-    <div class="section">
-      <label for="nicknameInput">닉네임</label>
-      <input id="nicknameInput" type="text" placeholder="예: 민수, cpa준비생" />
-
-      <label for="pinInput" style="margin-top:8px;">비밀번호 (숫자 4자리)</label>
-      <input id="pinInput" type="password" maxlength="4" placeholder="1234" />
-
-      <label for="categorySelect" style="margin-top:8px;">준비하는 시험</label>
-      <select id="categorySelect">
-        <option value="">선택하세요</option>
-        <option value="CPA">CPA (공인회계사)</option>
-        <option value="임용">임용</option>
-        <option value="공무원">공무원</option>
-        <option value="로스쿨">로스쿨</option>
-        <option value="수능">수능</option>
-        <option value="기타">직접 입력</option>
-      </select>
-
-      <input id="categoryCustom" type="text" placeholder="직접 입력" style="margin-top:6px; display:none;" />
-
-      <div class="btn-row">
-        <button class="secondary" onclick="signUp()">회원가입</button>
-        <button class="primary" onclick="login()">로그인</button>
-      </div>
-
-      <p id="message" class="message"></p>
-    </div>
-  </div>
+  <link rel="stylesheet" href="style.css">
 
   <!-- Firebase -->
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
   <script>
-    // ✅ korno1library 프로젝트 config
     const firebaseConfig = {
       apiKey: "AIzaSyCvlmk_jldq85UnFNvaLGQGtGcQVOzti8s",
       authDomain: "korno1library.firebaseapp.com",
@@ -55,136 +19,99 @@
     };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
+  </script>
+</head>
 
-    const nicknameInput = document.getElementById("nicknameInput");
-    const pinInput = document.getElementById("pinInput");
-    const categorySelect = document.getElementById("categorySelect");
-    const categoryCustom = document.getElementById("categoryCustom");
-    const messageEl = document.getElementById("message");
+<body>
+  <div class="app">
+    <div class="page-header">
+      <div class="page-title">도서관 공부 랭킹</div>
+      <div class="page-subtitle">닉네임과 4자리 PIN으로 로그인하세요.</div>
+    </div>
 
-    categorySelect.addEventListener("change", () => {
-      if (categorySelect.value === "기타") {
-        categoryCustom.style.display = "block";
-      } else {
-        categoryCustom.style.display = "none";
-      }
-    });
+    <div class="card">
+      <label for="nickname">닉네임</label>
+      <input type="text" id="nickname" placeholder="예: 민수킹" />
 
-    function getExamCategory() {
-      if (categorySelect.value === "기타") {
-        return categoryCustom.value.trim() || "기타";
-      }
-      return categorySelect.value || "미설정";
-    }
+      <label for="pin">비밀번호 (4자리 숫자)</label>
+      <input type="password" id="pin" maxlength="4" placeholder="0000" />
 
-    function isValidPin(pin) {
-      return /^\d{4}$/.test(pin);
-    }
+      <label for="exam">준비 중인 시험</label>
+      <select id="exam">
+        <option value="">선택</option>
+        <option value="공무원">공무원</option>
+        <option value="임용">임용</option>
+        <option value="편입">편입</option>
+        <option value="CPA">CPA</option>
+        <option value="로스쿨">로스쿨</option>
+        <option value="수능">수능</option>
+        <option value="기타">기타</option>
+      </select>
 
-    async function signUp() {
-      const nickname = nicknameInput.value.trim();
-      const pin = pinInput.value.trim();
-      const examCategory = getExamCategory();
+      <button class="primary" onclick="login()">로그인</button>
+      <p id="message" class="message"></p>
+    </div>
+  </div>
 
-      messageEl.className = "message";
+  <script>
+    async function login() {
+      const nickname = document.getElementById("nickname").value.trim();
+      const pin = document.getElementById("pin").value.trim();
+      const exam = document.getElementById("exam").value;
+      const msgEl = document.getElementById("message");
+      msgEl.className = "message";
 
       if (!nickname) {
-        messageEl.textContent = "닉네임을 입력하세요.";
-        messageEl.classList.add("error");
+        msgEl.textContent = "닉네임을 입력하세요.";
+        msgEl.classList.add("error");
         return;
       }
-      if (!isValidPin(pin)) {
-        messageEl.textContent = "비밀번호는 숫자 4자리여야 합니다.";
-        messageEl.classList.add("error");
-        return;
-      }
-
-      try {
-        const userRef = db.collection("users").doc(nickname);
-        const doc = await userRef.get();
-
-        if (doc.exists) {
-          messageEl.textContent = "이미 사용 중인 닉네임입니다. 다른 닉네임을 써주세요.";
-          messageEl.classList.add("error");
-          return;
-        }
-
-        await userRef.set({
-          pin,
-          examCategory,
-          createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-
-        localStorage.setItem("nickname", nickname);
-        localStorage.setItem("pin", pin);
-        localStorage.setItem("examCategory", examCategory);
-
-        messageEl.textContent = "회원가입 성공! 메인 페이지로 이동합니다.";
-        messageEl.classList.add("success");
-
-        setTimeout(() => {
-          window.location.href = "main.html";
-        }, 600);
-
-      } catch (e) {
-        console.error(e);
-        messageEl.textContent = "에러가 발생했습니다. 나중에 다시 시도해 주세요.";
-        messageEl.classList.add("error");
-      }
-    }
-
-    async function login() {
-      const nickname = nicknameInput.value.trim();
-      const pin = pinInput.value.trim();
-
-      messageEl.className = "message";
-
-      if (!nickname || !pin) {
-        messageEl.textContent = "닉네임과 비밀번호를 입력하세요.";
-        messageEl.classList.add("error");
+      if (!/^\d{4}$/.test(pin)) {
+        msgEl.textContent = "PIN은 숫자 4자리여야 합니다.";
+        msgEl.classList.add("error");
         return;
       }
 
       try {
-        const userRef = db.collection("users").doc(nickname);
-        const doc = await userRef.get();
+        const userDoc = await db.collection("users").doc(nickname).get();
 
-        if (!doc.exists) {
-          messageEl.textContent = "존재하지 않는 닉네임입니다. 회원가입 먼저 해주세요.";
-          messageEl.classList.add("error");
-          return;
+        if (userDoc.exists) {
+          const savedPin = userDoc.data().pin;
+          if (savedPin !== pin) {
+            msgEl.textContent = "이미 존재하는 닉네임입니다. PIN이 일치하지 않습니다.";
+            msgEl.classList.add("error");
+            return;
+          }
+        } else {
+          await db.collection("users").doc(nickname).set({
+            pin,
+            examCategory: exam || "미설정",
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
         }
 
-        const data = doc.data();
-        if (data.pin !== pin) {
-          messageEl.textContent = "비밀번호가 틀렸습니다.";
-          messageEl.classList.add("error");
-          return;
-        }
-
-        const examCategory = data.examCategory || "미설정";
         localStorage.setItem("nickname", nickname);
         localStorage.setItem("pin", pin);
-        localStorage.setItem("examCategory", examCategory);
+        localStorage.setItem("examCategory", exam || "미설정");
 
-        messageEl.textContent = "로그인 성공! 메인 페이지로 이동합니다.";
-        messageEl.classList.add("success");
+        msgEl.textContent = "로그인 성공! 프로필로 이동합니다.";
+        msgEl.classList.add("success");
 
         setTimeout(() => {
           window.location.href = "main.html";
-        }, 600);
-
+        }, 400);
       } catch (e) {
         console.error(e);
-        messageEl.textContent = "에러가 발생했습니다. 나중에 다시 시도해 주세요.";
-        messageEl.classList.add("error");
+        msgEl.textContent = "로그인 중 오류가 발생했습니다.";
+        msgEl.classList.add("error");
       }
     }
 
-    // 이미 로그인한 사람 닉네임 채우기
-    window.addEventListener("load", () => {
+    window.addEventListener("load", async () => {
       const savedNickname = localStorage.getItem("nickname");
-      if (savedNickname) nicknameInput.value = savedNickname;
+      if (savedNickname) {
+        document.getElementById("nickname").value = savedNickname;
+      }
     });
   </script>
 </body>
