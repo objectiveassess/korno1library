@@ -2,66 +2,89 @@
 <html>
 <head>
   <meta charset="UTF-8" />
-  <title>도서관 공부 랭킹 - 메인</title>
+  <title>도서관 공부 랭킹 - 프로필</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <div class="app">
-    <h1>도서관 공부 랭킹</h1>
-    <p class="subtitle">QR로 출근/퇴근하고, 오늘 공부시간을 랭킹으로 확인하세요.</p>
+    <div class="page-header">
+      <div class="page-title">내 공부 대시보드</div>
+      <div class="page-subtitle" id="headerSubtitle">오늘 공부현황을 확인하세요.</div>
+    </div>
 
-    <div class="section">
-      <div id="userInfo" class="info-chip">내 정보 불러오는 중...</div>
-      <p id="myStudyTime" class="status">내 오늘 공부시간: 계산 중...</p>
+    <!-- 프로필 카드 -->
+    <div class="card">
+      <div class="table-header">
+        <div class="table-title">내 프로필</div>
+        <a href="index.html" class="link">로그아웃</a>
+      </div>
+      <div id="profileInfo" class="status">불러오는 중...</div>
+      <div class="chip-row" style="margin-top:8px;">
+        <div id="profileExamChip" class="chip">시험: -</div>
+        <div id="profileTodayChip" class="chip">오늘: -분</div>
+      </div>
+    </div>
 
-      <div class="chart-box">
-        <canvas id="myChart" height="160"></canvas>
+    <!-- 오늘 공부 시간 + 목표 도넛 그래프 -->
+    <div class="card">
+      <div class="table-header">
+        <div class="table-title">오늘 공부시간</div>
+        <span class="small">목표 10시간 기준</span>
+      </div>
+      <div class="chart-container">
+        <canvas id="myChart" height="150"></canvas>
+      </div>
+      <p id="myStudyTime" class="status">계산 중...</p>
+    </div>
+
+    <!-- QR 출근/퇴근 -->
+    <div class="card">
+      <div class="table-header">
+        <div class="table-title">QR로 출근 / 퇴근</div>
+        <span class="small">도서관 내에서만 사용</span>
+      </div>
+      <p class="status">도서관에 비치된 출근·퇴근 QR을 아래 버튼으로 스캔하세요.</p>
+      <div class="btn-row">
+        <button class="secondary" onclick="startScan()">QR 찍기</button>
       </div>
 
-      <p style="margin-top:8px; font-size:12px;">
-        <a href="index.html" class="link">다른 계정으로 로그인</a>
-      </p>
+      <div id="qrScanArea" class="qr-area" style="display:none;">
+        <div id="qrReader"></div>
+        <p id="qrStatus" class="status">카메라 준비 중...</p>
+        <button class="secondary" onclick="stopScan()">스캔 취소</button>
+      </div>
     </div>
 
-    <div class="section">
-      <h2>오늘 전체 랭킹 Top 10</h2>
-      <table>
+    <!-- 오늘 출석부 / 랭킹 -->
+    <div class="card">
+      <div class="table-header">
+        <div class="table-title">오늘 출석부 / 랭킹</div>
+        <span class="small" id="todayLabel"></span>
+      </div>
+      <p class="status">오늘 도서관 출석 기록입니다. (최신 기준, 상위 20명)</p>
+      <table id="todayTable">
         <thead>
           <tr>
-            <th>순위</th>
+            <th>#</th>
             <th>닉네임</th>
             <th>시험</th>
-            <th>분</th>
+            <th>시간(분)</th>
           </tr>
         </thead>
-        <tbody id="overallRankBody">
-          <tr><td colspan="4">불러오는 중...</td></tr>
-        </tbody>
-      </table>
-    </div>
-
-    <div class="section">
-      <h2>오늘 내 카테고리 랭킹 Top 10</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>순위</th>
-            <th>닉네임</th>
-            <th>분</th>
-          </tr>
-        </thead>
-        <tbody id="categoryRankBody">
-          <tr><td colspan="3">불러오는 중...</td></tr>
+        <tbody id="todayBody">
+          <tr><td colspan="4" class="small">불러오는 중...</td></tr>
         </tbody>
       </table>
     </div>
   </div>
 
   <!-- Firebase -->
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- html5-qrcode -->
+  <script src="https://unpkg.com/html5-qrcode@2.3.10/minified/html5-qrcode.min.js"></script>
 
   <script>
     const firebaseConfig = {
@@ -85,60 +108,65 @@
       throw new Error("not logged in");
     }
 
-    const userInfoEl = document.getElementById("userInfo");
-    const myStudyTimeEl = document.getElementById("myStudyTime");
-    const overallRankBody = document.getElementById("overallRankBody");
-    const categoryRankBody = document.getElementById("categoryRankBody");
-
     function getToday() {
       const d = new Date();
       return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
     }
     const today = getToday();
+    document.getElementById("todayLabel").textContent = today;
+    document.getElementById("headerSubtitle").textContent = `${today} 공부 현황입니다.`;
 
-    async function loadUserInfo() {
-      const userRef = db.collection("users").doc(nickname);
-      const doc = await userRef.get();
-      if (doc.exists) {
-        const data = doc.data();
-        examCategory = data.examCategory || examCategory;
-        localStorage.setItem("examCategory", examCategory);
-      }
-      userInfoEl.textContent = `닉네임: ${nickname} · 시험: ${examCategory}`;
-    }
+    const profileInfoEl = document.getElementById("profileInfo");
+    const examChipEl = document.getElementById("profileExamChip");
+    const todayChipEl = document.getElementById("profileTodayChip");
+    const myStudyTimeEl = document.getElementById("myStudyTime");
 
-    let todayMinutes = 0;
-    const DAILY_GOAL = 600; // 10시간 목표
+    const DAILY_GOAL = 600; // 10시간
     let chart;
 
-    async function loadMyStudyTime() {
-      const sessRef = db.collection("sessions")
-        .where("nickname", "==", nickname)
-        .where("date", "==", today);
-      const snap = await sessRef.get();
+    async function loadProfileAndStudy() {
+      try {
+        // 사용자 프로필 불러오기
+        const userDoc = await db.collection("users").doc(nickname).get();
+        if (userDoc.exists) {
+          const data = userDoc.data();
+          examCategory = data.examCategory || examCategory;
+          localStorage.setItem("examCategory", examCategory);
+        }
 
-      if (snap.empty) {
-        myStudyTimeEl.textContent = "내 오늘 공부시간: 아직 출근 기록이 없습니다.";
-        todayMinutes = 0;
-      } else {
-        const data = snap.docs[0].data();
-        todayMinutes = data.totalMinutes || 0;
+        profileInfoEl.textContent = `닉네임: ${nickname}`;
+        examChipEl.textContent = `시험: ${examCategory}`;
+
+        // 오늘 내 세션
+        const sessRef = db.collection("sessions")
+          .where("nickname", "==", nickname)
+          .where("date", "==", today);
+        const snap = await sessRef.get();
+
+        let todayMinutes = 0;
+        if (!snap.empty) {
+          const data = snap.docs[0].data();
+          todayMinutes = data.totalMinutes || 0;
+        }
+
+        todayChipEl.textContent = `오늘: 약 ${todayMinutes}분`;
         myStudyTimeEl.textContent = `내 오늘 공부시간: 약 ${todayMinutes}분`;
+
+        drawChart(todayMinutes);
+      } catch (e) {
+        console.error(e);
+        myStudyTimeEl.textContent = "오늘 공부시간을 불러오는 중 오류가 발생했습니다.";
       }
-      drawChart();
     }
 
-    function drawChart() {
-      const ctx = document.getElementById("myChart").getContext("2d");
-      const done = todayMinutes;
+    function drawChart(done) {
       const remain = Math.max(0, DAILY_GOAL - done);
-
+      const ctx = document.getElementById("myChart").getContext("2d");
       if (chart) chart.destroy();
-
       chart = new Chart(ctx, {
         type: "doughnut",
         data: {
-          labels: ["오늘 공부한 시간", "남은 목표"],
+          labels: ["공부한 시간", "남은 목표"],
           datasets: [{
             data: [done, remain],
             backgroundColor: ["#2563eb", "#e5e7eb"],
@@ -161,83 +189,104 @@
       });
     }
 
-    async function loadOverallRanking() {
-      const rankRef = db.collection("sessions")
-        .where("date", "==", today)
-        .orderBy("totalMinutes", "desc")
-        .limit(10);
-      const snap = await rankRef.get();
+    async function loadTodaySessions() {
+      const tbody = document.getElementById("todayBody");
+      tbody.innerHTML = `<tr><td colspan="4" class="small">불러오는 중...</td></tr>`;
 
-      overallRankBody.innerHTML = "";
-      let rank = 1;
+      try {
+        const sessRef = db.collection("sessions")
+          .where("date", "==", today)
+          .orderBy("totalMinutes", "desc")
+          .limit(20);
+        const snap = await sessRef.get();
 
-      snap.forEach(doc => {
-        const d = doc.data();
-        const tr = document.createElement("tr");
-        const cat = d.examCategory || "미설정";
-        tr.innerHTML = `
-          <td>${rank}</td>
-          <td>${d.nickname}</td>
-          <td>${cat}</td>
-          <td>${d.totalMinutes || 0}</td>
-        `;
-        overallRankBody.appendChild(tr);
-        rank++;
+        if (snap.empty) {
+          tbody.innerHTML = `<tr><td colspan="4" class="small">아직 오늘 출석 기록이 없습니다.</td></tr>`;
+          return;
+        }
+
+        let html = "";
+        let rank = 1;
+        snap.forEach(doc => {
+          const d = doc.data();
+          const name = d.nickname || "-";
+          const exam = d.examCategory || "-";
+          const mins = d.totalMinutes || 0;
+          html += `
+            <tr>
+              <td>${rank}</td>
+              <td>${name}</td>
+              <td>${exam}</td>
+              <td>${mins}</td>
+            </tr>
+          `;
+          rank++;
+        });
+        tbody.innerHTML = html;
+      } catch (e) {
+        console.error(e);
+        tbody.innerHTML = `<tr><td colspan="4" class="small">출석부를 불러오는 중 오류가 발생했습니다.</td></tr>`;
+      }
+    }
+
+    // ===== QR 스캔 =====
+    let html5QrCode = null;
+    let scanning = false;
+
+    function startScan() {
+      const scanArea = document.getElementById("qrScanArea");
+      const qrStatus = document.getElementById("qrStatus");
+      scanArea.style.display = "block";
+      qrStatus.textContent = "카메라를 허용하고, QR을 화면 중앙에 맞춰주세요.";
+
+      if (!html5QrCode) {
+        html5QrCode = new Html5Qrcode("qrReader");
+      }
+
+      Html5Qrcode.getCameras().then(cameras => {
+        if (!cameras || cameras.length === 0) {
+          qrStatus.textContent = "사용 가능한 카메라를 찾을 수 없습니다.";
+          return;
+        }
+        const cameraId = cameras[0].id;
+        html5QrCode.start(
+          cameraId,
+          { fps: 10, qrbox: 220 },
+          (decodedText, decodedResult) => {
+            qrStatus.textContent = "QR 인식 완료! 이동합니다...";
+            stopScan(false);
+            if (decodedText.startsWith("http")) {
+              window.location.href = decodedText;
+            } else {
+              alert("알 수 없는 QR입니다.");
+            }
+          },
+          () => { /* 반복되는 에러는 무시 */ }
+        ).then(() => {
+          scanning = true;
+        }).catch(err => {
+          console.error(err);
+          qrStatus.textContent = "카메라를 시작할 수 없습니다: " + err;
+        });
+      }).catch(err => {
+        console.error(err);
+        qrStatus.textContent = "카메라 정보를 가져올 수 없습니다: " + err;
       });
+    }
 
-      if (rank === 1) {
-        const tr = document.createElement("tr");
-        tr.innerHTML = `<td colspan="4">아직 오늘 공부 기록이 없습니다.</td>`;
-        overallRankBody.appendChild(tr);
+    function stopScan(hide = true) {
+      if (html5QrCode && scanning) {
+        html5QrCode.stop().then(() => {
+          scanning = false;
+        }).catch(e => console.error(e));
+      }
+      if (hide) {
+        document.getElementById("qrScanArea").style.display = "none";
       }
     }
 
-    async function loadCategoryRanking() {
-      categoryRankBody.innerHTML = "";
-
-      if (!examCategory || examCategory === "미설정") {
-        const tr = document.createElement("tr");
-        tr.innerHTML = `<td colspan="3">시험 카테고리가 설정되지 않았습니다.</td>`;
-        categoryRankBody.appendChild(tr);
-        return;
-      }
-
-      const rankRef = db.collection("sessions")
-        .where("date", "==", today)
-        .where("examCategory", "==", examCategory)
-        .orderBy("totalMinutes", "desc")
-        .limit(10);
-
-      const snap = await rankRef.get();
-
-      let rank = 1;
-      snap.forEach(doc => {
-        const d = doc.data();
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td>${rank}</td>
-          <td>${d.nickname}</td>
-          <td>${d.totalMinutes || 0}</td>
-        `;
-        categoryRankBody.appendChild(tr);
-        rank++;
-      });
-
-      if (rank === 1) {
-        const tr = document.createElement("tr");
-        tr.innerHTML = `<td colspan="3">아직 이 카테고리에는 공부 기록이 없습니다.</td>`;
-        categoryRankBody.appendChild(tr);
-      }
-    }
-
-    async function main() {
-      await loadUserInfo();
-      await loadMyStudyTime();
-      await loadOverallRanking();
-      await loadCategoryRanking();
-    }
-
-    main();
+    loadProfileAndStudy();
+    loadTodaySessions();
   </script>
 </body>
 </html>
