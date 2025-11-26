@@ -1,1 +1,132 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>관리자 - 오늘 출석부</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app">
+    <div class="page-header">
+      <div class="page-title">오늘 전체 출석부</div>
+      <div class="page-subtitle">오늘 도서관 출근·퇴근 및 공부시간 목록입니다.</div>
+    </div>
 
+    <div class="card">
+      <div class="table-header">
+        <div class="table-title">요약</div>
+        <span id="todayLabel" class="small"></span>
+      </div>
+      <p id="summary" class="status">불러오는 중...</p>
+    </div>
+
+    <div class="card">
+      <div class="table-header">
+        <div class="table-title">출석부</div>
+        <span class="small">닉네임 기준, 최대 100명</span>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>닉네임</th>
+            <th>시험</th>
+            <th>출근</th>
+            <th>퇴근</th>
+            <th>분</th>
+          </tr>
+        </thead>
+        <tbody id="tbody">
+          <tr><td colspan="6" class="small">불러오는 중...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <p class="status small">
+        사용자도 오늘 출석부를 볼 수 있습니다.<br/>
+        → <code>main.html</code> 하단 "오늘 출석부 / 랭킹" 카드
+      </p>
+      <p class="status small" style="margin-top:4px;">
+        QR 관리 페이지: <a href="admin.html" class="link">관리자 - QR 생성</a>
+      </p>
+    </div>
+  </div>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyCvlmk_jldq85UnFNvaLGQGtGcQVOzti8s",
+      authDomain: "korno1library.firebaseapp.com",
+      projectId: "korno1library",
+      storageBucket: "korno1library.appspot.com",
+      messagingSenderId: "407619436872",
+      appId: "1:407619436872:web:7fdd65b77eed5f84aa737d"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    function getToday() {
+      const d = new Date();
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+    }
+    const today = getToday();
+    document.getElementById("todayLabel").textContent = today;
+
+    async function loadReport() {
+      const tbody = document.getElementById("tbody");
+      const summaryEl = document.getElementById("summary");
+      tbody.innerHTML = `<tr><td colspan="6" class="small">불러오는 중...</td></tr>`;
+
+      try {
+        const ref = db.collection("sessions").where("date", "==", today).orderBy("nickname");
+        const snap = await ref.get();
+
+        if (snap.empty) {
+          tbody.innerHTML = `<tr><td colspan="6" class="small">오늘 출석 데이터가 없습니다.</td></tr>`;
+          summaryEl.textContent = "출석 인원 0명 · 총 공부시간 0분";
+          return;
+        }
+
+        let html = "";
+        let totalMinutes = 0;
+        let count = 0;
+        snap.forEach((doc, index) => {
+          const d = doc.data();
+          const name = d.nickname || "-";
+          const exam = d.examCategory || "-";
+          const mins = d.totalMinutes || 0;
+          const ci = d.checkInTime ? d.checkInTime.toDate().toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" }) : "-";
+          const co = d.checkOutTime ? d.checkOutTime.toDate().toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" }) : "-";
+
+          totalMinutes += mins;
+          count++;
+
+          html += `
+            <tr>
+              <td>${index+1}</td>
+              <td>${name}</td>
+              <td>${exam}</td>
+              <td>${ci}</td>
+              <td>${co}</td>
+              <td>${mins}</td>
+            </tr>
+          `;
+        });
+
+        tbody.innerHTML = html;
+        summaryEl.textContent = `출석 인원 ${count}명 · 총 공부시간 약 ${totalMinutes}분`;
+      } catch (e) {
+        console.error(e);
+        tbody.innerHTML = `<tr><td colspan="6" class="small">데이터를 불러오는 중 오류가 발생했습니다.</td></tr>`;
+        summaryEl.textContent = "오류 발생";
+      }
+    }
+
+    loadReport();
+  </script>
+</body>
+</html>
