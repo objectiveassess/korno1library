@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>출근 체크</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app">
+    <h1>출근 체크</h1>
+    <p class="subtitle">도서관 근처에서만 출근이 가능합니다.</p>
+
+    <div class="section">
+      <p id="status" class="status">위치 확인 중...</p>
+    </div>
+  </div>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyCvlmk_jldq85UnFNvaLGQGtGcQVOzti8s",
+      authDomain: "korno1library.firebaseapp.com",
+      projectId: "korno1library",
+      storageBucket: "korno1library.appspot.com",
+      messagingSenderId: "407619436872",
+      appId: "1:407619436872:web:7fdd65b77eed5f84aa737d"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    const statusEl = document.getElementById("status");
+
+    // 🔵 여기 실제 경북대 중앙도서관 좌표로 바꾸면 됨
+    const LIB_LAT = 35.8888;
+    const LIB_LNG = 128.6100;
+    const MAX_DIST = 150;
+
+    function getToday() {
+      const d = new Date();
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+    }
+    const today = getToday();
+
+    function getDistanceFromLatLonInM(lat1, lon1, lat2, lon2) {
+      const R = 6371000;
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLon = (lon2 - lon1) * Math.PI / 180;
+      const a =
+        Math.sin(dLat / 2) ** 2 +
+        Math.cos(lat1 * Math.PI / 180) *
+        Math.cos(lat2 * Math.PI / 180) *
+        Math.sin(dLon / 2) ** 2;
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      return R * c;
+    }
+
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get("token");
+
+    const nickname = localStorage.getItem("nickname");
+    const pin = localStorage.getItem("pin");
+    const examCategory = localStorage.getItem("examCategory") || "미설정";
+
+    if (!nickname || !pin) {
+      alert("먼저 로그인해야 합니다!");
+      window.location.href = "index.html";
+      throw new Error("not logged in");
+    }
+
+    async function doCheckIn() {
+      if (!token) {
+        statusEl.textContent = "잘못된 QR입니다.";
+        return;
+      }
+
+      const tokenDoc = await db.collection("tokens").doc(today).get();
+      if (!tokenDoc.exists || tokenDoc.data().checkInToken !== token) {
+        statusEl.textContent = "유효하지 않은 출근 QR입니다.";
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(async (pos) => {
+        const userLat = pos.coords.latitude;
+        const userLng = pos.coords.longitude;
+        const dist = getDistanceFromLatLonInM(userLat, userLng, LIB_LAT, LIB_LNG);
+
+        if (dist > MAX_DIST) {
+          statusEl.textContent = "도서관 근처에서만 출근할 수 있습니다.";
+          return;
+        }
+
+        const sessRef = db.collection("sessions")
+          .where("nickname", "==", nickname)
+          .where("date", "==", today);
+
+        const snap = await sessRef.get();
+
+        if (snap.empty) {
+          await db.collection("sessions").add({
+            nickname,
+            examCategory,
+            date: today,
+            checkInTime: firebase.firestore.FieldValue.serverTimestamp(),
+            checkOutTime: null,
+            totalMinutes: 0
+          });
+          statusEl.textContent = `${nickname}님, 출근 완료!`;
+        } else {
+          statusEl.textContent = "오늘 이미 출근했습니다.";
+        }
+      }, () => {
+        statusEl.textContent = "위치 권한을 허용해야 출근할 수 있습니다.";
+      });
+    }
+
+    doCheckIn();
+  </script>
+</body>
+</html>
